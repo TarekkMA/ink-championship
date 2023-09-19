@@ -1,0 +1,35 @@
+[package]
+name = "my-player"
+authors = ["Piotr Mikołajczyk", "Cardinal", "Aleph Zero Foundation"]
+edition = "2021"
+version = "0.1.0"
+publish = false
+
+[dependencies]
+ink = { git = "https://github.com/paritytech/ink", branch = "gn/extra_gas_config", default-features = false }
+
+[dev-dependencies]
+drink = { version = "=0.1.7", features = ["session"] }
+ink_e2e = { git = "https://github.com/paritytech/ink", branch = "gn/extra_gas_config" }
+
+squink_splash = { path = "../../game", default-features = false }
+rand-player = { path = "../rand-player", default-features = false }
+corner-player = { path = "../corner-player", default-features = false }
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+default = ["std"]
+std = [
+    "ink/std",
+]
+ink-as-dependency = []
+
+# Testing flavors
+unit-tests = []
+drink-tests = []
+e2e-tests = []
+switching-strategies = [
+    "ink_e2e/drink",
+]
