@@ -719,6 +719,7 @@ mod tests {
                 &game_call.register_player(player_alex.account_id, "Alex".into()),
                 0,
                 None,
+                None
             )
             .await
             .unwrap();
@@ -729,17 +730,18 @@ mod tests {
                 &game_call.register_player(player_bob.account_id, "Bob".into()),
                 0,
                 None,
+                None
             )
             .await
             .unwrap();
 
         client
-            .call(&alice, &game_call.start_game(), 0, None)
+            .call(&alice, &game_call.start_game(), 0, None, None)
             .await
             .unwrap();
 
         let state = client
-            .call(&alice, &game_call.state(), 0, None)
+            .call(&alice, &game_call.state(), 0, None, None)
             .await
             .unwrap()
             .return_value();
@@ -747,12 +749,12 @@ mod tests {
 
         for _ in 0..rounds {
             client
-                .call(&alice, &game_call.submit_turn(), 0, None)
+                .call(&alice, &game_call.submit_turn(), 0, None, None)
                 .await
                 .unwrap();
 
             let players = client
-                .call(&alice, &game_call.players_sorted(), 0, None)
+                .call(&alice, &game_call.players_sorted(), 0, None, None)
                 .await
                 .unwrap()
                 .return_value();
@@ -761,14 +763,14 @@ mod tests {
         }
 
         let state = client
-            .call(&alice, &game_call.state(), 0, None)
+            .call(&alice, &game_call.state(), 0, None, None)
             .await
             .unwrap()
             .return_value();
         println!("state: {:?}", state);
 
         client
-            .call(&alice, &game_call.end_game(), 0, None)
+            .call(&alice, &game_call.end_game(), 0, None, None)
             .await
             .unwrap();
     }

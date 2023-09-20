@@ -10,5 +10,6 @@ do
 		--skip-dry-run\
 		--gas 300000000000\
 		--proof-size 512000\
-		--skip-confirm
+		--skip-confirm \
+		-x
 done
