@@ -21,7 +21,7 @@ This repository contains:
 ## Setup
 1. Make sure you have latest Rust installed
 2. Install `cargo-contract` by running `cargo install cargo-contract --locked --force --version 4.0.0-alpha`
-3. If you don't have a wallet, we recommend installing browser based on like [PolkadotJS][https://polkadot.js.org/extension/], 
+3. If you don't have a wallet, we recommend installing browser based on like [PolkadotJS](https://polkadot.js.org/extension/), 
 or other Polkadot wallets (e.g. Talisman, SubWallet)
 4. Get some faucet tokens from Rococo testnet: https://use.ink/faucet/
 You can see the funds under
