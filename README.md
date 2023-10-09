@@ -23,9 +23,9 @@ This repository contains:
 2. Install `cargo-contract` by running `cargo install cargo-contract --locked --force --version 4.0.0-alpha`
 3. If you don't have a wallet, we recommend installing browser based on like [PolkadotJS](https://polkadot.js.org/extension/), 
 or other Polkadot wallets (e.g. Talisman, SubWallet)
-4. Get some faucet tokens from Rococo testnet: https://use.ink/faucet/
+4. Get some faucet tokens from Aleph Zero testnet: https://faucet.test.azero.dev/
 You can see the funds under
-[the "Accounts" tab for the `Contracts` parachain](https://polkadot.js.org/apps/?rpc=wss%3A%2F%2Frococo-contracts-rpc.polkadot.io#/accounts).
+[the "Accounts" tab on Aleph Zero block explorer](https://test.azero.dev/#/accounts).
 5. If you need extra funds: the faucet is drained, or you reached the limit. You can use the smart contract faucet.
 To use it, you need to run the frontend by following [instructions](/smart-faucet/README.md)
 

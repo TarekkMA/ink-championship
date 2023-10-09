@@ -5,7 +5,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import 'ui/style.css';
 import { UseInkProvider } from 'useink';
-import { RococoContractsTestnet } from 'useink/chains';
+import { AlephTestnet } from 'useink/chains';
 import { NotificationsProvider } from 'useink/notifications';
 
 ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
@@ -13,9 +13,9 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <UseInkProvider
       config={{
         dappName: metadata.contract.name,
-        chains: [RococoContractsTestnet],
+        chains: [AlephTestnet],
         caller: {
-          default: '5EyR7vEk7DtvEWeefGcXXMV6hKwB8Ex5uvjHufm466mbjJkR',
+          default: '5CFP5rsvHBaKpuPp9HJeXSYxagH2dQMhb23LyXQoPeyNkeDL',
         },
       }}
     >

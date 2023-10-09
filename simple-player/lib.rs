@@ -1,9 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
-pub use player::{
-    Player as TestPlayer,
-    PlayerRef as TestPlayerRef,
-};
+pub use player::{Player as TestPlayer, PlayerRef as TestPlayerRef};
 
 #[ink::contract]
 mod player {
@@ -34,6 +31,10 @@ mod player {
         ///
         /// The function can be named as you like, but it always needs to have
         /// a defined selector of `0`.
+        /// 
+        /// There is also a "y"-version of this strategy which is more gas efficient.
+        /// Try to figure it out yourself. 
+        /// Otherwise, see https://hackmd.io/@Bko6Q67PTLqaQlQPRrmFhA/S1Vc7AWZp 
         #[ink(message, selector = 0)]
         pub fn your_turn(&mut self) -> Option<(u32, u32)> {
             let turn = self.next_turn;

@@ -13,18 +13,17 @@ import {
   decimalToPlanck,
   isPendingSignature,
   pickDecoded,
-  planckToDecimal,
   planckToDecimalFormatted,
   shouldDisable,
   stringNumberToBN,
 } from 'useink/utils';
 import metadata from './assets/smart_faucet.json';
-import { CONTRACT_ROCOCO_ADDRESS } from './constants';
+import { AZ_TESTNET_ADDRESS } from './constants';
 
 function App() {
   const { account } = useWallet();
-  const chainContract = useContract(CONTRACT_ROCOCO_ADDRESS, metadata);
-  const contractBalance = useBalance({ address: CONTRACT_ROCOCO_ADDRESS });
+  const chainContract = useContract(AZ_TESTNET_ADDRESS, metadata);
+  const contractBalance = useBalance({ address: AZ_TESTNET_ADDRESS });
   const userBalance = useBalance(account);
   const giveMe = useTx(chainContract, 'giveMe');
   const getAmount = useCallSubscription<string>(chainContract, 'getAmount', []);
@@ -37,7 +36,7 @@ function App() {
   );
 
   const decimalAmount = useMemo(
-    () => planckToDecimal(stringNumberToBN(amount), { api: chainContract?.contract?.api }) || 0,
+    () => planckToDecimalFormatted(stringNumberToBN(amount), { api: chainContract?.contract?.api }) || 0,
     [amount]
   )
 
@@ -97,8 +96,8 @@ function App() {
               {isPendingSignature(giveMe)
                 ? 'Please sign transaction...'
                 : shouldDisable(giveMe)
-                  ? `Sending you ${decimalAmount} ROC...`
-                  : `Withdraw ${decimalAmount} ROC`}
+                  ? `Sending you ${decimalAmount} ...`
+                  : `Withdraw ${decimalAmount}`}
             </Button>
           ) : (
             <ConnectButton className="mt-6" />
@@ -110,7 +109,7 @@ function App() {
             )}
 
             <Link
-              href={`https://use.ink/faucet?acc=${CONTRACT_ROCOCO_ADDRESS}`}
+              href={`https://faucet.test.azero.dev`}
               target="_blank"
             >
               Add ROC to contract with faucet
