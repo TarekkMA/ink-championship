@@ -384,6 +384,9 @@ mod contract {
                     self.state = State::Forming {
                         earliest_start: Self::env().block_number(),
                     };
+                    self.board = Mapping::default();
+                    self.players.set(&Vec::new());
+                    self.last_turn.set(&0);
                     Ok(())
                 }
                 _ => Err(GameError::OnlyFinishedGameCanBeReset),
