@@ -1,21 +1,47 @@
 #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
 pub use contract::{
-    Field, FieldEntry, GameInfo, SquinkSplash as Game, SquinkSplashRef as GameRef, State,
+    Field,
+    FieldEntry,
+    GameInfo,
+    SquinkSplash as Game,
+    SquinkSplashRef as GameRef,
+    State,
 };
 
 #[ink::contract]
 mod contract {
-    use core::{cmp::Reverse, ops::RangeInclusive};
+    use core::{
+        cmp::Reverse,
+        ops::RangeInclusive,
+    };
     use ink::{
         env::{
-            call::{build_call, Call, ExecutionInput, Selector},
-            debug_println, CallFlags, DefaultEnvironment, Error as InkEnvError,
+            call::{
+                build_call,
+                Call,
+                ExecutionInput,
+                Selector,
+            },
+            debug_println,
+            CallFlags,
+            DefaultEnvironment,
+            Error as InkEnvError,
         },
-        prelude::{format, string::String, vec::Vec},
-        storage::{Lazy, Mapping},
+        prelude::{
+            format,
+            string::String,
+            vec::Vec,
+        },
+        storage::{
+            Lazy,
+            Mapping,
+        },
     };
-    use scale::{Decode, Encode};
+    use scale::{
+        Decode,
+        Encode,
+    };
 
     /// The amount of players that are allowed to register for a single game.
     const PLAYER_LIMIT: usize = 80;
@@ -384,7 +410,11 @@ mod contract {
                     self.state = State::Forming {
                         earliest_start: Self::env().block_number(),
                     };
-                    self.board = Mapping::default();
+                    for x in 0..self.dimensions.x {
+                        for y in 0..self.dimensions.y {
+                            self.board.remove(self.idx(&Field { x, y }).unwrap());
+                        }
+                    }
                     self.players.set(&Vec::new());
                     self.last_turn.set(&0);
                     Ok(())
@@ -459,7 +489,7 @@ mod contract {
             let mut players = self.players();
 
             let State::Running { rounds_played } = &mut self.state else {
-                return Err (GameError::ThisGameDoesNotAcceptTurnsRightNow);
+                return Err(GameError::ThisGameDoesNotAcceptTurnsRightNow);
             };
 
             // Only one turn per block
@@ -712,8 +742,15 @@ mod contract {
 
 #[cfg(all(test, feature = "e2e-tests"))]
 mod tests {
-    use crate::{Field, Game, GameRef};
-    use ink_e2e::{alice, ContractsBackend};
+    use crate::{
+        Field,
+        Game,
+        GameRef,
+    };
+    use ink_e2e::{
+        alice,
+        ContractsBackend,
+    };
     use simple_player::TestPlayerRef;
 
     #[ink_e2e::test(additional_contracts = "../simple-player/Cargo.toml")]
