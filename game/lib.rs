@@ -68,7 +68,11 @@ mod contract {
         /// The opener is allowed to start the game early.
         opener: AccountId,
     }
-    #[ink::scale_derive(Encode, Decode, TypeInfo)]
+    #[derive(scale::Decode, scale::Encode)]
+    #[cfg_attr(
+        feature = "std",
+        derive(Debug, scale_info::TypeInfo, ink::storage::traits::StorageLayout)
+    )]
     pub struct GameInfo {
         rounds_played: u32,
         gas_left: u64,
@@ -76,9 +80,11 @@ mod contract {
     }
 
     /// The game can be in different states over its lifetime.
-    #[derive(Clone, Debug)]
-    #[ink::scale_derive(Encode, Decode, TypeInfo)]
-    #[cfg_attr(feature = "std", derive(ink::storage::traits::StorageLayout))]
+    #[derive(scale::Decode, scale::Encode, Clone)]
+    #[cfg_attr(
+    feature = "std",
+    derive(Debug, scale_info::TypeInfo, ink::storage::traits::StorageLayout)
+    )]
     pub enum State {
         /// The initial state of the game.
         ///
@@ -108,8 +114,11 @@ mod contract {
         },
     }
 
-    #[derive(Clone, Debug)]
-    #[ink::scale_derive(Encode, Decode, TypeInfo)]
+    #[derive(scale::Decode, scale::Encode)]
+    #[cfg_attr(
+    feature = "std",
+    derive(Debug, scale_info::TypeInfo, ink::storage::traits::StorageLayout)
+    )]
     pub struct Player {
         pub id: AccountId,
         pub name: String,
@@ -125,9 +134,11 @@ mod contract {
     }
 
     /// Describing either a single point in the field or its dimensions.
-    #[derive(Clone, Copy, Debug)]
-    #[ink::scale_derive(Encode, Decode, TypeInfo)]
-    #[cfg_attr(feature = "std", derive(ink::storage::traits::StorageLayout))]
+    #[derive(scale::Decode, scale::Encode, Clone, Copy, Debug)]
+    #[cfg_attr(
+    feature = "std",
+    derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
+    )]
     pub struct Field {
         /// The width component.
         pub x: u32,
@@ -142,9 +153,11 @@ mod contract {
     }
 
     /// Info for each occupied board entry.
-    #[derive(Debug)]
-    #[ink::scale_derive(Encode, Decode, TypeInfo)]
-    #[cfg_attr(feature = "std", derive(ink::storage::traits::StorageLayout))]
+    #[derive(scale::Decode, scale::Encode, Debug)]
+    #[cfg_attr(
+    feature = "std",
+    derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
+    )]
     pub struct FieldEntry {
         /// Player to claimed the field.
         owner: AccountId,
@@ -157,7 +170,8 @@ mod contract {
     /// Please note that these are only the failures that don't make the transaction fail
     /// and hence cause an actual state change. For example, trying to do multiple turns
     /// per block or submitting a turn for an unregistered player are not covered.
-    #[ink::scale_derive(Encode, Decode, TypeInfo)]
+    #[derive(scale::Decode, scale::Encode)]
+    #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
     pub enum TurnOutcome {
         /// A field was painted.
         Success {
