@@ -531,7 +531,7 @@ mod contract {
                     _err => {
                         // Player gets charged gas for failing.
                         player.gas_used = player.gas_used.saturating_add(gas_used);
-                        debug_println!("Contract failed to make a turn: {:?}", err);
+                        debug_println!("Contract failed to make a turn: {:?}", _err);
                         TurnOutcome::BrokenPlayer
                     }
                 };
