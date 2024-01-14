@@ -1,41 +1,21 @@
 #![cfg_attr(not(feature = "std"), no_std, no_main)]
 
 pub use contract::{
-    Field,
-    FieldEntry,
-    GameInfo,
-    SquinkSplash as Game,
-    SquinkSplashRef as GameRef,
-    State,
+    Field, FieldEntry, GameInfo, SquinkSplash as Game, SquinkSplashRef as GameRef, State,
 };
 
 #[ink::contract]
 mod contract {
-    use core::{
-        cmp::Reverse,
-        ops::RangeInclusive,
-    };
+    use core::{cmp::Reverse, ops::RangeInclusive};
     use ink::{
         env::{
-            call::{
-                build_call,
-                Call,
-                ExecutionInput,
-                Selector,
-            },
-            debug_println,
-            CallFlags,
-            DefaultEnvironment,
+            call::{build_call, Call, ExecutionInput, Selector},
+            debug_println, CallFlags, DefaultEnvironment,
         },
-        prelude::{
-            string::String,
-            vec::Vec,
-        },
-        storage::{
-            Lazy,
-            Mapping,
-        },
+        prelude::{string::String, vec::Vec},
+        storage::{Lazy, Mapping},
     };
+    use scale::{Decode, Encode};
 
     /// The amount of players that are allowed to register for a single game.
     const PLAYER_LIMIT: usize = 80;
@@ -48,6 +28,22 @@ mod contract {
 
     /// Maximum number of bytes in a players name.
     const ALLOWED_NAME_SIZES: RangeInclusive<usize> = 3..=16;
+
+    #[derive(Debug, PartialEq, Eq, Encode, Decode)]
+    #[cfg_attr(feature = "std", derive(scale_info::TypeInfo))]
+    pub enum GameError {
+        OnlyFinishedGamesCanBeDestroyed,
+        GameAlreadyStarted,
+        PlayerAlreadyRegistered,
+        PlayersCanOnlyBeRegisteredInTheFormingPhase,
+        InvalidLengthForName,
+        WrongBuyIn,
+        MaximumPlayerCountReached,
+        ThisNameIsAlreadyTaken,
+        GameCannotBeEndedOrHasAlreadyEnded,
+        ThisGameDoesNotAcceptTurnsRightNow,
+        TurnWasAlreadySubmittedForThisBlock,
+    }
 
     #[ink(storage)]
     pub struct SquinkSplash {
@@ -82,8 +78,8 @@ mod contract {
     /// The game can be in different states over its lifetime.
     #[derive(scale::Decode, scale::Encode, Clone)]
     #[cfg_attr(
-    feature = "std",
-    derive(Debug, scale_info::TypeInfo, ink::storage::traits::StorageLayout)
+        feature = "std",
+        derive(Debug, scale_info::TypeInfo, ink::storage::traits::StorageLayout)
     )]
     pub enum State {
         /// The initial state of the game.
@@ -116,8 +112,8 @@ mod contract {
 
     #[derive(scale::Decode, scale::Encode)]
     #[cfg_attr(
-    feature = "std",
-    derive(Debug, scale_info::TypeInfo, ink::storage::traits::StorageLayout)
+        feature = "std",
+        derive(Debug, scale_info::TypeInfo, ink::storage::traits::StorageLayout)
     )]
     pub struct Player {
         pub id: AccountId,
@@ -136,8 +132,8 @@ mod contract {
     /// Describing either a single point in the field or its dimensions.
     #[derive(scale::Decode, scale::Encode, Clone, Copy, Debug)]
     #[cfg_attr(
-    feature = "std",
-    derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
+        feature = "std",
+        derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
     )]
     pub struct Field {
         /// The width component.
@@ -155,8 +151,8 @@ mod contract {
     /// Info for each occupied board entry.
     #[derive(scale::Decode, scale::Encode, Debug)]
     #[cfg_attr(
-    feature = "std",
-    derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
+        feature = "std",
+        derive(scale_info::TypeInfo, ink::storage::traits::StorageLayout)
     )]
     pub struct FieldEntry {
         /// Player to claimed the field.
@@ -286,7 +282,7 @@ mod contract {
 
         /// When the game is in finished the contract can be deleted by the winner.
         #[ink(message)]
-        pub fn destroy(&mut self) {
+        pub fn destroy(&mut self) -> Result<(), GameError> {
             if let State::Finished { winner } = self.state {
                 assert_eq!(
                     winner,
@@ -301,15 +297,15 @@ mod contract {
                 };
                 let winner_id = winner.id;
                 Self::env().emit_event(GameDestroyed { winner });
-                Self::env().terminate_contract(winner_id)
+                Self::env().terminate_contract(winner_id);
             } else {
-                panic!("Only finished games can be destroyed.")
+                return Err(GameError::OnlyFinishedGamesCanBeDestroyed);
             }
         }
 
         /// Anyone can start the game when `earliest_start` is reached.
         #[ink(message)]
-        pub fn start_game(&mut self) {
+        pub fn start_game(&mut self) -> Result<(), GameError> {
             if let State::Forming { earliest_start } = self.state {
                 assert!(
                     Self::env().caller() == self.opener
@@ -317,7 +313,7 @@ mod contract {
                     "Game can't be started, yet."
                 );
             } else {
-                panic!("Game already started.")
+                return Err(GameError::GameAlreadyStarted);
             };
             let players = self.players();
             assert!(!players.is_empty(), "You need at least one player.");
@@ -329,6 +325,8 @@ mod contract {
             Self::env().emit_event(GameStarted {
                 starter: Self::env().caller(),
             });
+
+            Ok(())
         }
 
         /// When enough time has passed, no new turns can be submitted.
@@ -364,34 +362,38 @@ mod contract {
 
         /// Add a new player to the game. Only allowed while the game has not started.
         #[ink(message, payable)]
-        pub fn register_player(&mut self, id: AccountId, name: String) {
-            assert!(
-                matches!(self.state, State::Forming { .. }),
-                "Players can only be registered in the forming phase."
-            );
-            assert!(
-                ALLOWED_NAME_SIZES.contains(&name.len()),
-                "Invalid length for name. Allowed: [{}, {}]",
-                ALLOWED_NAME_SIZES.start(),
-                ALLOWED_NAME_SIZES.end()
-            );
-            assert_eq!(
-                self.buy_in,
-                Self::env().transferred_value(),
-                "Wrong buy in. Needs to be: {}",
-                self.buy_in
-            );
+        pub fn register_player(
+            &mut self,
+            id: AccountId,
+            name: String,
+        ) -> Result<(), GameError> {
+            matches!(self.state, State::Forming { .. })
+                .then_some(())
+                .ok_or(GameError::PlayersCanOnlyBeRegisteredInTheFormingPhase)?;
+
+            ALLOWED_NAME_SIZES
+                .contains(&name.len())
+                .then_some(())
+                .ok_or(GameError::InvalidLengthForName)?;
+
+            self.buy_in
+                .eq(&Self::env().transferred_value())
+                .then_some(())
+                .ok_or(GameError::WrongBuyIn)?;
+
             let mut players = self.players();
-            assert!(
-                players.len() < PLAYER_LIMIT,
-                "Maximum player count reached."
-            );
+
+            players
+                .len()
+                .lt(&PLAYER_LIMIT)
+                .then_some(())
+                .ok_or(GameError::MaximumPlayerCountReached)?;
+
             match Self::find_player(&id, &players) {
                 Err(idx) => {
-                    assert!(
-                        !players.iter().any(|p| p.name == name),
-                        "This name is already taken."
-                    );
+                    let res = !players.iter().any(|p| p.name == name);
+                    res.then_some(()).ok_or(GameError::ThisNameIsAlreadyTaken)?;
+
                     players.insert(
                         idx,
                         Player {
@@ -404,8 +406,11 @@ mod contract {
                     self.players.set(&players);
                     Self::env().emit_event(PlayerRegistered { player: id });
                 }
-                Ok(_) => panic!("Player already registered."),
+                Ok(_) => {
+                    return Err(GameError::PlayerAlreadyRegistered);
+                }
             }
+            Ok(())
         }
 
         /// This is the actual game loop.
@@ -413,16 +418,15 @@ mod contract {
         /// It can be called by anyone and triggers at most one turn
         /// of the game per block.
         #[ink(message)]
-        pub fn submit_turn(&mut self) {
-            assert!(
-                self.is_running(),
-                "Game can't be ended or has already ended.",
-            );
+        pub fn submit_turn(&mut self) -> Result<(), GameError> {
+            self.is_running()
+                .then_some(())
+                .ok_or(GameError::GameCannotBeEndedOrHasAlreadyEnded)?;
 
             let mut players = self.players();
 
             let State::Running { rounds_played } = &mut self.state else {
-                panic!("This game does not accept turns right now.");
+                return Err (GameError::ThisGameDoesNotAcceptTurnsRightNow);
             };
 
             // Only one turn per block
@@ -433,11 +437,12 @@ mod contract {
                 .last_turn
                 .get()
                 .expect("Value was set when starting the game.");
-            assert!(
-                last_turn < current_block,
-                "A turn was already submitted for this block. Last turn: {} Current Block: {}",
-                last_turn, current_block,
-            );
+
+            last_turn
+                .lt(&current_block)
+                .then_some(())
+                .ok_or(GameError::TurnWasAlreadySubmittedForThisBlock)?;
+
             self.last_turn.set(&current_block);
 
             // We need to cache this as we can't accessed players in the loop.
@@ -462,7 +467,7 @@ mod contract {
 
             for (idx, player) in players.iter_mut().enumerate() {
                 if (idx as u32).rem_euclid(num_batches) != current_batch {
-                    continue
+                    continue;
                 }
 
                 // Stop calling a contract that has no gas left.
@@ -474,7 +479,7 @@ mod contract {
                         player: player.id,
                         outcome: TurnOutcome::BudgetExhausted,
                     });
-                    continue
+                    continue;
                 }
                 game_info.gas_left = gas_left;
 
@@ -523,10 +528,10 @@ mod contract {
                         }
                     }
                     Ok(Ok(None)) => TurnOutcome::NoTurn,
-                    err => {
+                    _err => {
                         // Player gets charged gas for failing.
                         player.gas_used = player.gas_used.saturating_add(gas_used);
-                        debug_println!("Contract failed to make a turn: {:?}", err);
+                        debug_println!("Contract failed to make a turn: {:?}", _err);
                         TurnOutcome::BrokenPlayer
                     }
                 };
@@ -542,6 +547,7 @@ mod contract {
             });
 
             self.players.set(&players);
+            Ok(())
         }
 
         /// The buy-in amount to register a player.
@@ -673,15 +679,8 @@ mod contract {
 
 #[cfg(all(test, feature = "e2e-tests"))]
 mod tests {
-    use crate::{
-        Field,
-        Game,
-        GameRef,
-    };
-    use ink_e2e::{
-        alice,
-        ContractsBackend,
-    };
+    use crate::{Field, Game, GameRef};
+    use ink_e2e::{alice, ContractsBackend};
     use simple_player::TestPlayerRef;
 
     #[ink_e2e::test(additional_contracts = "../simple-player/Cargo.toml")]
@@ -733,7 +732,7 @@ mod tests {
                 &game_call.register_player(player_alex.account_id, "Alex".into()),
                 0,
                 None,
-                None
+                None,
             )
             .await
             .unwrap();
@@ -744,7 +743,7 @@ mod tests {
                 &game_call.register_player(player_bob.account_id, "Bob".into()),
                 0,
                 None,
-                None
+                None,
             )
             .await
             .unwrap();
