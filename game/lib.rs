@@ -10,9 +10,9 @@ mod contract {
     use ink::{
         env::{
             call::{build_call, Call, ExecutionInput, Selector},
-            debug_println, CallFlags, DefaultEnvironment,
+            debug_println, CallFlags, DefaultEnvironment, Error as InkEnvError,
         },
-        prelude::{string::String, vec::Vec},
+        prelude::{format, string::String, vec::Vec},
         storage::{Lazy, Mapping},
     };
     use scale::{Decode, Encode};
@@ -47,6 +47,17 @@ mod contract {
         YouNeedAtLeastOnePlayer,
         GameCantBeEndedOrHasAlreadyEnded,
         OnlyWinnerIsAllowedToDestroyTheContract,
+        OnlyFinishedGameCanBeReset,
+        TheWinnerIsNotAPlayer,
+        WeOnlyAllowAtartingTheGameWithAtLeastOnePlayer,
+        InkEnvError(String),
+        ValueWasNotSetWhenStartingTheGame,
+    }
+
+    impl From<InkEnvError> for GameError {
+        fn from(why: InkEnvError) -> Self {
+            Self::InkEnvError(format!("{:?}", why))
+        }
     }
 
     #[ink(storage)]
@@ -296,7 +307,8 @@ mod contract {
                 let winner = {
                     let players = self.players();
                     let winning_idx = Self::find_player(&winner, &players)
-                        .expect("The winner is a player; qed");
+                        .map_err(|_| GameError::TheWinnerIsNotAPlayer)?;
+
                     players.into_iter().nth(winning_idx).unwrap()
                 };
                 let winner_id = winner.id;
@@ -349,22 +361,33 @@ mod contract {
             let winner = players
                 .iter()
                 .min_by_key(|p| p.scoring_order())
-                .expect("We only allow starting the game with at least 1 player.")
+                .ok_or(GameError::WeOnlyAllowAtartingTheGameWithAtLeastOnePlayer)?
                 .id;
 
             // Give the pot to the winner
-            Self::env()
-                .transfer(
-                    winner,
-                    Balance::from(players.len() as u32).saturating_mul(self.buy_in),
-                )
-                .unwrap();
+            Self::env().transfer(
+                winner,
+                Balance::from(players.len() as u32).saturating_mul(self.buy_in),
+            )?;
 
             self.state = State::Finished { winner };
             Self::env().emit_event(GameEnded {
                 ender: Self::env().caller(),
             });
             Ok(())
+        }
+
+        #[ink(message)]
+        pub fn reset_game(&mut self) -> Result<(), GameError> {
+            match self.state {
+                State::Finished { .. } => {
+                    self.state = State::Forming {
+                        earliest_start: Self::env().block_number(),
+                    };
+                    Ok(())
+                }
+                _ => Err(GameError::OnlyFinishedGameCanBeReset),
+            }
         }
 
         /// Add a new player to the game. Only allowed while the game has not started.
@@ -443,7 +466,7 @@ mod contract {
             let last_turn = self
                 .last_turn
                 .get()
-                .expect("Value was set when starting the game.");
+                .ok_or(GameError::ValueWasNotSetWhenStartingTheGame)?;
 
             last_turn
                 .lt(&current_block)
