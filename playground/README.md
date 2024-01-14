@@ -1,50 +1,34 @@
-# Testing strategies for ink! smart contracts
+# Squink-Splash playground
 
-In this directory you can find a collection of three main testing strategies for ink! smart contracts.
-We present them in the context of the Squink-Splash game.
+This directory contains three very simple player strategies for the Squink-Splash game.
+You can use them to build your own awesome player contract!
 
 ## Code organization
 
-We will be testing a simple player strategy for the Squink-Splash game.
-Our player's contract can be found in the [my-player](./my-player) directory.
-There, you will also find all the tests.
+The base strategy contract can be found in the [my-player](./my-player) directory.
+There, you will also find some example tests.
 
-In order to test our strategy in a full game simulation against other players, we also include two other simple players:
+For a full game simulation against other players, you can also include two other simple players:
  - [random-player](./rand-player) - a player that makes random moves
  - [corner-player](./corner-player) - a player that starts painting in the right bottom corner of the board and then moves towards the left top corner
 
 ## Running tests
 
-In order to run the tests, you need to have `cargo-contract` and `substrate-contracts-node` installed.
-You can do that by running:
-```bash
-cargo install cargo-contract
-cargo install contracts-node
-```
-
-Then, you can run the tests by executing:
 ```bash
 cd my-player/
 
 # run unit tests (optionally without the `--release` flag)
 cargo test --features unit-tests --release
 
-# run e2e tests (optionally without the `--release` flag)
-cargo test --features e2e-tests --release
-
 # run quasi-e2e tests (optionally without the `--release` flag)
-./build_contracts.sh && cargo test --features drink-tests --release
-
-# run a single testcase code using two different testing strategies (optionally without `--release` flag)
-cargo test --features switching-strategies --release
+cargo test --features drink-tests --release
 ```
 
-_Note: We for the quasi-e2e tests, we need to build the contracts manually.
-For other tests, `cargo test` will do that for us, but will also remove `json` metadata files, which are needed for the drink! framework._
+For the sake of hands-on workshops, we omit the E2E paradigm, as it requires the most complex setup and does not provide much value over drink tests.
 
 ---
 
-## Testing strategies
+## Testing strategies: brief recap
 
 There are three primary paradigms for testing ink! smart contracts:
  - [Unit testing](./my-player/src/unit_tests.rs)

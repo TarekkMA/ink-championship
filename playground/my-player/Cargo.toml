@@ -1,0 +1,34 @@
+[package]
+name = "my-player"
+authors = ["Piotr Mikołajczyk", "Cardinal", "Aleph Zero Foundation"]
+edition = "2021"
+version = "0.1.0"
+publish = false
+
+[dependencies]
+ink = { version = "4.3.0", default-features = false }
+scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
+scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
+
+[dev-dependencies]
+drink = { version = "=0.8.4", features = ["session"] }
+
+squink_splash = { path = "../../game", default-features = false, features = ["ink-as-dependency"] }
+rand-player = { path = "../rand-player", default-features = false, features = ["ink-as-dependency"] }
+corner-player = { path = "../corner-player", default-features = false, features = ["ink-as-dependency"] }
+
+[lib]
+path = "src/lib.rs"
+
+[features]
+default = ["std"]
+std = [
+    "ink/std",
+    "scale/std",
+    "scale-info/std",
+]
+ink-as-dependency = []
+
+# Testing flavors
+unit-tests = []
+drink-tests = []
