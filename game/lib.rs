@@ -43,6 +43,10 @@ mod contract {
         GameCannotBeEndedOrHasAlreadyEnded,
         ThisGameDoesNotAcceptTurnsRightNow,
         TurnWasAlreadySubmittedForThisBlock,
+        GameCantBeStartedYet,
+        YouNeedAtLeastOnePlayer,
+        GameCantBeEndedOrHasAlreadyEnded,
+        OnlyWinnerIsAllowedToDestroyTheContract,
     }
 
     #[ink(storage)]
@@ -284,11 +288,11 @@ mod contract {
         #[ink(message)]
         pub fn destroy(&mut self) -> Result<(), GameError> {
             if let State::Finished { winner } = self.state {
-                assert_eq!(
-                    winner,
-                    Self::env().caller(),
-                    "Only winner is allowed to destroy the contract."
-                );
+                winner
+                    .eq(&Self::env().caller())
+                    .then_some(())
+                    .ok_or(GameError::OnlyWinnerIsAllowedToDestroyTheContract)?;
+
                 let winner = {
                     let players = self.players();
                     let winning_idx = Self::find_player(&winner, &players)
@@ -307,16 +311,19 @@ mod contract {
         #[ink(message)]
         pub fn start_game(&mut self) -> Result<(), GameError> {
             if let State::Forming { earliest_start } = self.state {
-                assert!(
-                    Self::env().caller() == self.opener
-                        || Self::env().block_number() >= earliest_start,
-                    "Game can't be started, yet."
-                );
+                (Self::env().caller() == self.opener
+                    || Self::env().block_number() >= earliest_start)
+                    .then_some(())
+                    .ok_or(GameError::GameCantBeStartedYet)?;
             } else {
                 return Err(GameError::GameAlreadyStarted);
             };
             let players = self.players();
-            assert!(!players.is_empty(), "You need at least one player.");
+
+            let res = !players.is_empty();
+            res.then_some(())
+                .ok_or(GameError::YouNeedAtLeastOnePlayer)?;
+
             self.state = State::Running { rounds_played: 0 };
 
             // We pretend that there was already a turn in this block so that no
@@ -333,11 +340,10 @@ mod contract {
         /// Then anybody may call this function to end the game and
         /// trigger the payout to the winner.
         #[ink(message)]
-        pub fn end_game(&mut self) {
-            assert!(
-                !self.is_running(),
-                "Game can't be ended or has already ended.",
-            );
+        pub fn end_game(&mut self) -> Result<(), GameError> {
+            let res = !self.is_running();
+            res.then_some(())
+                .ok_or(GameError::GameCantBeEndedOrHasAlreadyEnded)?;
 
             let players = self.players();
             let winner = players
@@ -358,6 +364,7 @@ mod contract {
             Self::env().emit_event(GameEnded {
                 ender: Self::env().caller(),
             });
+            Ok(())
         }
 
         /// Add a new player to the game. Only allowed while the game has not started.
