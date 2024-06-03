@@ -1,7 +1,6 @@
 [package]
-name = "squink_splash"
+name = "common"
 version = "0.1.0"
-authors = ["Parity Technologies <admin@parity.io>"]
 edition = "2021"
 
 [dependencies]
@@ -9,17 +8,10 @@ ink = { version = "4.3.0", default-features = false }
 scale = { package = "parity-scale-codec", version = "3", default-features = false, features = ["derive"] }
 scale-info = { version = "2", default-features = false, features = ["derive"], optional = true }
 
-common = { path = "../common", default-features = false }
-
-[lib]
-path = "lib.rs"
-
 [features]
 default = ["std"]
 std = [
     "ink/std",
     "scale/std",
     "scale-info/std",
-    "common/std",
 ]
-ink-as-dependency = []
