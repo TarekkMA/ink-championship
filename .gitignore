@@ -7,6 +7,7 @@
 /lang/target/
 /intelligent-player/target/
 /simple-player/target/
+/egypt-player/target/
 /simplest-player/target/
 /primitives/target/
 /examples/**/target/

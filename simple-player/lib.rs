@@ -16,7 +16,7 @@ mod player {
 
     impl Player {
         #[ink(constructor)]
-        pub fn new(game_contract: AccountId, dimensions: (u32, u32), start: u32) -> Self {
+        pub fn new(game_contract: AccountId, dimensions: (u32, u32), star./t: u32) -> Self {
             Self {
                 game_contract,
                 dimensions,
